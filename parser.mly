@@ -163,8 +163,8 @@ exp:
   | s=STRING            { loc $startpos $endpos @@ CStr s }
   | e=exp LBRACKET i=exp RBRACKET
                         { loc $startpos $endpos @@ Index (e, i) }
-  | e=exp LPAREN es=separated_list(COMMA, exp) RPAREN
-                        { loc $startpos $endpos @@ Call (e, es) }
+  | e=IDENT LPAREN es=separated_list(COMMA, exp) RPAREN
+                        { loc $startpos $endpos @@ Call (loc $startpos(e) $endpos(e) (Id e), es) }
   | LPAREN e=exp RPAREN { e }
   | NEW t=ty LBRACKET RBRACKET LBRACE s=separated_list(COMMA, gexp) RBRACE
                         {loc $startpos $endpos @@ CArr (t,s) }
@@ -183,8 +183,8 @@ fty:
 stmt:
   | d=vdecl SEMI        { loc $startpos $endpos @@ Decl(d) }
   | p=lhs EQ e=exp SEMI { loc $startpos $endpos @@ Assn(p,e) }
-  | e=exp LPAREN es=separated_list(COMMA, exp) RPAREN SEMI
-                        { loc $startpos $endpos @@ SCall (e, es) }
+  | e=IDENT LPAREN es=separated_list(COMMA, exp) RPAREN SEMI
+                        { loc $startpos $endpos @@ SCall (loc $startpos(e) $endpos(e) (Id e), es) }
   | ifs=if_stmt         { ifs }
   | RETURN SEMI         { loc $startpos $endpos @@ Ret(None) }
   | RETURN e=exp SEMI   { loc $startpos $endpos @@ Ret(Some e) }

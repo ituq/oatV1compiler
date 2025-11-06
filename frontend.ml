@@ -12,11 +12,11 @@ open Ast
      of the instruction stream. You will find this useful for compiling string
      literals
    - E of uid * insn: allows you to emit an instruction that will be moved up
-     to the entry block of the current function. This will be useful for 
+     to the entry block of the current function. This will be useful for
      compiling local variable declarations
 *)
 
-type elt = 
+type elt =
   | L of Ll.lbl             (* block labels *)
   | I of uid * Ll.insn      (* instruction *)
   | T of Ll.terminator      (* block terminators *)
@@ -35,7 +35,7 @@ let cfg_of_stream (code:stream) : Ll.cfg * (Ll.gid * Ll.gdecl) list  =
         match e with
         | L l ->
            begin match term_opt with
-           | None -> 
+           | None ->
               if (List.length insns) = 0 then (gs, einsns, [], None, blks)
               else failwith @@ Printf.sprintf "build_cfg: block labeled %s has\
                                                no terminator" l
@@ -49,8 +49,8 @@ let cfg_of_stream (code:stream) : Ll.cfg * (Ll.gid * Ll.gdecl) list  =
       ) ([], [], [], None, []) code
     in
     match term_opt with
-    | None -> failwith "build_cfg: entry block has no terminator" 
-    | Some term -> 
+    | None -> failwith "build_cfg: entry block has no terminator"
+    | Some term ->
        let insns = einsns @ insns in
        ({insns; term}, blks), gs
 
@@ -81,7 +81,7 @@ module Ctxt = struct
 
   let lookup_function_option (id:Ast.id) (c:t) : (Ll.ty * Ll.operand) option =
     try Some (lookup_function id c) with _ -> None
-  
+
 end
 
 (* compiling OAT types ------------------------------------------------------ *)
@@ -94,7 +94,7 @@ end
 
    The trickiest part of this project will be satisfying LLVM's rudimentary type
    system. Recall that global arrays in LLVMlite need to be declared with their
-   length in the type to statically allocate the right amount of memory. The 
+   length in the type to statically allocate the right amount of memory. The
    global strings and arrays you emit will therefore have a more specific type
    annotation than the output of cmp_rty. You will have to carefully bitcast
    gids to satisfy the LLVM type checker.
@@ -108,7 +108,7 @@ let rec cmp_ty : Ast.ty -> Ll.ty = function
 and cmp_rty : Ast.rty -> Ll.ty = function
   | Ast.RString  -> I8
   | Ast.RArray u -> Struct [I64; Array(0, cmp_ty u)]
-  | Ast.RFun (ts, t) -> 
+  | Ast.RFun (ts, t) ->
       let args, ret = cmp_fty (ts, t) in
       Fun (args, ret)
 
@@ -162,17 +162,17 @@ let typ_of_unop : Ast.unop -> Ast.ty * Ast.ty = function
    writing this, I think it could make sense to factor the Oat grammar in this
    way, which would make things clearer, I may do that for next time around.]]
 
- 
+
    Consider globals7.oat
 
-   /--------------- globals7.oat ------------------ 
+   /--------------- globals7.oat ------------------
    global arr = int[] null;
 
-   int foo() { 
-     var x = new int[3]; 
-     arr = x; 
-     x[2] = 3; 
-     return arr[2]; 
+   int foo() {
+     var x = new int[3];
+     arr = x;
+     x[2] = 3;
+     return arr[2];
    }
    /------------------------------------------------
 
@@ -193,34 +193,34 @@ let typ_of_unop : Ast.unop -> Ast.ty * Ast.ty = function
    %_array6 = bitcast i64* %_raw_array5 to { i64, [0 x i64] }*    ;; (3)
    store { i64, [0 x i64]}* %_array6, { i64, [0 x i64] }** %_x7   ;; (4)
 
-   (1) note that alloca uses cmp_ty (int[]) to find the type, so %_x7 has 
-       the same type as @arr 
+   (1) note that alloca uses cmp_ty (int[]) to find the type, so %_x7 has
+       the same type as @arr
 
-   (2) @oat_alloc_array allocates len+1 i64's 
+   (2) @oat_alloc_array allocates len+1 i64's
 
    (3) we have to bitcast the result of @oat_alloc_array so we can store it
-        in %_x7 
+        in %_x7
 
-   (4) stores the resulting array value (itself a pointer) into %_x7 
+   (4) stores the resulting array value (itself a pointer) into %_x7
 
   The assignment arr = x; gets compiled to (something like):
 
   %_x8 = load { i64, [0 x i64] }*, { i64, [0 x i64] }** %_x7     ;; (5)
   store {i64, [0 x i64] }* %_x8, { i64, [0 x i64] }** @arr       ;; (6)
 
-  (5) load the array value (a pointer) that is stored in the address pointed 
-      to by %_x7 
+  (5) load the array value (a pointer) that is stored in the address pointed
+      to by %_x7
 
-  (6) store the array value (a pointer) into @arr 
+  (6) store the array value (a pointer) into @arr
 
   The assignment x[2] = 3; gets compiled to (something like):
 
   %_x9 = load { i64, [0 x i64] }*, { i64, [0 x i64] }** %_x7      ;; (7)
-  %_index_ptr11 = getelementptr { i64, [0 x  i64] }, 
+  %_index_ptr11 = getelementptr { i64, [0 x  i64] },
                   { i64, [0 x i64] }* %_x9, i32 0, i32 1, i32 2   ;; (8)
   store i64 3, i64* %_index_ptr11                                 ;; (9)
 
-  (7) as above, load the array value that is stored %_x7 
+  (7) as above, load the array value that is stored %_x7
 
   (8) calculate the offset from the array using GEP
 
@@ -232,16 +232,16 @@ let typ_of_unop : Ast.unop -> Ast.ty * Ast.ty = function
   how their storage space is initially allocated.)
 
   %_arr12 = load { i64, [0 x i64] }*, { i64, [0 x i64] }** @arr    ;; (10)
-  %_index_ptr14 = getelementptr { i64, [0 x i64] },                
+  %_index_ptr14 = getelementptr { i64, [0 x i64] },
                  { i64, [0 x i64] }* %_arr12, i32 0, i32 1, i32 2  ;; (11)
   %_index15 = load i64, i64* %_index_ptr14                         ;; (12)
   ret i64 %_index15
 
-  (10) just like for %_x9, load the array value that is stored in @arr 
+  (10) just like for %_x9, load the array value that is stored in @arr
 
   (11)  calculate the array index offset
 
-  (12) load the array value at the index 
+  (12) load the array value at the index
 
 *)
 
@@ -253,12 +253,12 @@ let typ_of_unop : Ast.unop -> Ast.ty * Ast.ty = function
   translation type (which sets the array length to 0).  So for globals4.oat,
   the arr global would compile to (something like):
 
-  @arr = global { i64, [0 x i64] }* bitcast 
-           ({ i64, [4 x i64] }* @_global_arr5 to { i64, [0 x i64] }* ) 
-  @_global_arr5 = global { i64, [4 x i64] } 
+  @arr = global { i64, [0 x i64] }* bitcast
+           ({ i64, [4 x i64] }* @_global_arr5 to { i64, [0 x i64] }* )
+  @_global_arr5 = global { i64, [4 x i64] }
                   { i64 4, [4 x i64] [ i64 1, i64 2, i64 3, i64 4 ] }
 
-*) 
+*)
 
 
 
@@ -270,7 +270,7 @@ let gensym : string -> string =
   let c = ref 0 in
   fun (s:string) -> incr c; Printf.sprintf "_%s%d" s (!c)
 
-(* Amount of space an Oat type takes when stored in the satck, in bytes.  
+(* Amount of space an Oat type takes when stored in the satck, in bytes.
    Note that since structured values are manipulated by reference, all
    Oat values take 8 bytes on the stack.
 *)
@@ -289,14 +289,14 @@ let oat_alloc_array (t:Ast.ty) (size:Ll.operand) : Ll.ty * operand * stream =
 
 (* Compiles an expression exp in context c, outputting the Ll operand that will
    recieve the value of the expression, and the stream of instructions
-   implementing the expression. 
+   implementing the expression.
 
    Tips:
    - use the provided cmp_ty function!
 
    - string literals (CStr s) should be hoisted. You'll need to make sure
      either that the resulting gid has type (Ptr I8), or, if the gid has type
-     [n x i8] (where n is the length of the string), convert the gid to a 
+     [n x i8] (where n is the length of the string), convert the gid to a
      (Ptr I8), e.g., by using getelementptr.
 
    - use the provided "oat_alloc_array" function to implement literal arrays
@@ -307,7 +307,7 @@ let oat_alloc_array (t:Ast.ty) (size:Ll.operand) : Ll.ty * operand * stream =
 let rec cmp_exp (c:Ctxt.t) (exp:Ast.exp node) : Ll.ty * Ll.operand * stream =
   failwith "cmp_exp not implemented"
 
-(* Compile a statement in context c with return typ rt. Return a new context, 
+(* Compile a statement in context c with return typ rt. Return a new context,
    possibly extended with new local bindings, and the instruction stream
    implementing the statement.
 
@@ -319,9 +319,9 @@ let rec cmp_exp (c:Ctxt.t) (exp:Ast.exp node) : Ll.ty * Ll.operand * stream =
    - for local variable declarations, you will need to emit Allocas in the
      entry block of the current function using the E() constructor.
 
-   - don't forget to add a bindings to the context for local variable 
+   - don't forget to add a bindings to the context for local variable
      declarations
-   
+
    - you can avoid some work by translating For loops to the corresponding
      While loop, building the AST and recursively calling cmp_stmt
 
@@ -339,7 +339,7 @@ let rec cmp_stmt (c:Ctxt.t) (rt:Ll.ty) (stmt:Ast.stmt node) : Ctxt.t * stream =
 
 (* Compile a series of statements *)
 and cmp_block (c:Ctxt.t) (rt:Ll.ty) (stmts:Ast.block) : Ctxt.t * stream =
-  List.fold_left (fun (c, code) s -> 
+  List.fold_left (fun (c, code) s ->
       let c, stmt_code = cmp_stmt c rt s in
       c, code >@ stmt_code
     ) (c,[]) stmts
@@ -347,7 +347,7 @@ and cmp_block (c:Ctxt.t) (rt:Ll.ty) (stmts:Ast.block) : Ctxt.t * stream =
 
 
 (* Adds each function identifer to the context at an
-   appropriately translated type.  
+   appropriately translated type.
 
    NOTE: The Gid of a function is just its source name
 *)
@@ -357,15 +357,16 @@ let cmp_function_ctxt (c:Ctxt.t) (p:Ast.prog) : Ctxt.t =
          let ft = TRef (RFun (List.map fst args, frtyp)) in
          Ctxt.add c fname (cmp_ty ft, Gid fname)
       | _ -> c
-    ) c p 
+    ) c p
 
-(* Populate a context with bindings for global variables 
+(* Populate a context with bindings for global variables
    mapping OAT identifiers to LLVMlite gids and their types.
 
    Only a small subset of OAT expressions can be used as global initializers
-   in well-formed programs. (The constructors starting with C). 
+   in well-formed programs. (The constructors starting with C).
 *)
 let cmp_global_ctxt (c:Ctxt.t) (p:Ast.prog) : Ctxt.t =
+  let add_binding (c:Ctxt.t) (d:decl) = failwith "cmp_global_ctxt not implemented" in
   failwith "cmp_global_ctxt not implemented"
 
 (* Compile a function declaration in global context c. Return the LLVMlite cfg
@@ -377,7 +378,7 @@ let cmp_global_ctxt (c:Ctxt.t) (p:Ast.prog) : Ctxt.t =
    2. Store the function arguments in their corresponding alloca'd stack slot
    3. Extend the context with bindings for function variables
    4. Compile the body of the function using cmp_block
-   5. Use cfg_of_stream to produce a LLVMlite cfg from 
+   5. Use cfg_of_stream to produce a LLVMlite cfg from
  *)
 
 let cmp_fdecl (c:Ctxt.t) (f:Ast.fdecl node) : Ll.fdecl * (Ll.gid * Ll.gdecl) list =
@@ -418,7 +419,7 @@ let builtins =
 (* Compile a OAT program to LLVMlite *)
 let cmp_prog (p:Ast.prog) : Ll.prog =
   (* add built-in functions to context *)
-  let init_ctxt = 
+  let init_ctxt =
     List.fold_left (fun c (i, t) -> Ctxt.add c i (Ll.Ptr t, Gid i))
       Ctxt.empty builtins
   in
@@ -428,10 +429,10 @@ let cmp_prog (p:Ast.prog) : Ll.prog =
   let c = cmp_global_ctxt fc p in
 
   (* compile functions and global variables *)
-  let fdecls, gdecls = 
+  let fdecls, gdecls =
     List.fold_right (fun d (fs, gs) ->
         match d with
-        | Ast.Gvdecl { elt=gd } -> 
+        | Ast.Gvdecl { elt=gd } ->
            let ll_gd, gs' = cmp_gexp c gd.init in
            (fs, (gd.name, ll_gd)::gs' @ gs)
         | Ast.Gfdecl fd ->
