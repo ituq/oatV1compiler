@@ -166,8 +166,8 @@ exp:
   | e=IDENT LPAREN es=separated_list(COMMA, exp) RPAREN
                         { loc $startpos $endpos @@ Call (loc $startpos(e) $endpos(e) (Id e), es) }
   | LPAREN e=exp RPAREN { e }
-  | NEW t=ty LBRACKET RBRACKET LBRACE s=separated_list(COMMA, gexp) RBRACE
-                        {loc $startpos $endpos @@ CArr (t,s) }
+  | NEW t=ty LBRACKET RBRACKET LBRACE s=separated_list(COMMA, exp) RBRACE
+                        { loc $startpos $endpos @@ CArr (t, s) }
   | NEW t=ty LBRACKET e=exp RBRACKET
                         { loc $startpos $endpos @@ NewArr (t, e) }
 
